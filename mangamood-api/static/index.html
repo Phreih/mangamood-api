@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MangaMood</title>
+<style>
+  :root {
+    --bg: #0d0b14;
+    --card: #161320;
+    --border: #262236;
+    --accent: #a87dff;
+    --text: #eee8fb;
+    --muted: #948fae;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 32px 16px 80px;
+  }
+
+  .wrap { max-width: 680px; margin: 0 auto; }
+
+  header { text-align: center; margin-bottom: 28px; }
+  header h1 { font-size: 1.8rem; margin: 0 0 4px; }
+  header p { color: var(--muted); margin: 0; font-size: 0.9rem; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+
+  .card h2 {
+    font-size: 1rem;
+    margin: 0 0 14px;
+    color: var(--accent);
+  }
+
+  label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  input, textarea {
+    width: 100%;
+    background: #0f0d18;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    margin-bottom: 14px;
+    font-family: inherit;
+    resize: vertical;
+  }
+
+  input:focus, textarea:focus, button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+  button {
+    background: var(--accent);
+    color: #160f29;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  button.secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+
+  button.danger {
+    background: transparent;
+    color: #ff7d7d;
+    border: 1px solid #4a2a2a;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+  }
+
+  button:disabled { opacity: 0.6; cursor: wait; }
+
+  .review {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    background: #110f1a;
+  }
+
+  .review-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .review-title { font-weight: 600; font-size: 0.95rem; }
+  .review-author { color: var(--muted); font-size: 0.78rem; }
+  .review-content { font-size: 0.88rem; color: #d8d3ee; margin: 6px 0; }
+
+  .mood {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    text-transform: capitalize;
+    white-space: nowrap;
+  }
+
+  .empty { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 20px 0; }
+
+  .analyze-result {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .analyze-result strong { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>📖 MangaMood</h1>
+    <p>Reseñas de manga/manhwa con mood detectado por IA</p>
+  </header>
+
+  <section class="card">
+    <h2>Nueva reseña</h2>
+    <form id="form-review">
+      <label for="manga_title">Título del manga / manhwa</label>
+      <input id="manga_title" required placeholder="Ej: Solo Leveling" />
+
+      <label for="author">Tu nombre</label>
+      <input id="author" required placeholder="Ej: Sthevan" />
+
+      <label for="content">Reseña</label>
+      <textarea id="content" rows="3" required placeholder="¿Qué te pareció?"></textarea>
+
+      <button type="submit" id="btn-submit">Publicar reseña</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Analizador rápido</h2>
+    <label for="analyze-text">Probar un texto sin guardarlo</label>
+    <textarea id="analyze-text" rows="2" placeholder="Escribe cualquier texto..."></textarea>
+    <button class="secondary" id="btn-analyze">Analizar mood</button>
+    <div class="analyze-result" id="analyze-result"></div>
+  </section>
+
+  <section class="card">
+    <h2>Reseñas publicadas</h2>
+    <div id="review-list"><div class="empty">Cargando...</div></div>
+  </section>
+
+</div>
+
+<script>
+  const API = window.location.origin;
+
+  const moodColors = {
+    emocionante:   { bg: "#3a2a12", fg: "#ffb86b" },
+    triste:        { bg: "#142336", fg: "#7eb8ff" },
+    oscuro:        { bg: "#2a1414", fg: "#ff8f8f" },
+    divertido:     { bg: "#33310f", fg: "#f5e36b" },
+    tierno:        { bg: "#321a2c", fg: "#ff9fd6" },
+    decepcionante: { bg: "#222222", fg: "#a3a3a3" },
+    intenso:       { bg: "#33121a", fg: "#ff6b8a" },
+    relajante:     { bg: "#14301f", fg: "#7be0a0" },
+    indefinido:    { bg: "#222222", fg: "#a3a3a3" },
+  };
+
+  function moodBadge(mood) {
+    const c = moodColors[mood] || moodColors.indefinido;
+    return `<span class="mood" style="background:${c.bg};color:${c.fg}">${mood}</span>`;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  async function cargarReviews() {
+    const list = document.getElementById("review-list");
+    try {
+      const res = await fetch(`${API}/reviews`);
+      const data = await res.json();
+
+      if (!data.length) {
+        list.innerHTML = `<div class="empty">Aún no hay reseñas. ¡Sé el primero!</div>`;
+        return;
+      }
+
+      list.innerHTML = data.map(r => `
+        <div class="review" data-id="${r.id}">
+          <div class="review-top">
+            <div>
+              <div class="review-title">${escapeHtml(r.manga_title)}</div>
+              <div class="review-author">por ${escapeHtml(r.author)}</div>
+            </div>
+            ${moodBadge(r.mood || "indefinido")}
+          </div>
+          <div class="review-content">${escapeHtml(r.content)}</div>
+          <button class="danger" data-action="delete" data-id="${r.id}">Eliminar</button>
+        </div>
+      `).join("");
+    } catch (err) {
+      list.innerHTML = `<div class="empty">No se pudo conectar con la API.</div>`;
+    }
+  }
+
+  document.getElementById("form-review").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("btn-submit");
+    btn.disabled = true;
+    btn.textContent = "Analizando con IA...";
+
+    const body = {
+      manga_title: document.getElementById("manga_title").value,
+      author: document.getElementById("author").value,
+      content: document.getElementById("content").value,
+    };
+
+    try {
+      const res = await fetch(`${API}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        alert("Error: " + JSON.stringify(err.detail));
+        return;
+      }
+
+      document.getElementById("form-review").reset();
+      await cargarReviews();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Publicar reseña";
+    }
+  });
+
+  document.getElementById("review-list").addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-action='delete']");
+    if (!btn) return;
+    const id = btn.dataset.id;
+    if (!confirm("¿Eliminar esta reseña?")) return;
+
+    await fetch(`${API}/reviews/${id}`, { method: "DELETE" });
+    await cargarReviews();
+  });
+
+  document.getElementById("btn-analyze").addEventListener("click", async () => {
+    const text = document.getElementById("analyze-text").value.trim();
+    const resultBox = document.getElementById("analyze-result");
+    if (!text) return;
+
+    resultBox.textContent = "Analizando...";
+    try {
+      const res = await fetch(`${API}/reviews/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: text }),
+      });
+      const data = await res.json();
+      resultBox.innerHTML = `Mood detectado: <strong>${escapeHtml(data.mood)}</strong>`;
+    } catch (err) {
+      resultBox.textContent = "No se pudo analizar el texto.";
+    }
+  });
+
+  cargarReviews();
+</script>
+</body>
+</html>

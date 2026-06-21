@@ -227,7 +227,7 @@ Respuesta:
 
 ## Video de funcionamiento
 
-🎥 [Ver video de demostración]([https://link-a-tu-video.com](https://youtu.be/fRx6jXK43OE?si=AcOn-8p7fEGOuebH))
+🎥 [Ver video de demostración](https://youtu.be/fRx6jXK43OE?si=AcOn-8p7fEGOuebH)
 
 El video muestra:
 - Estructura del proyecto en el editor de código.
